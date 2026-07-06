@@ -128,7 +128,7 @@
             // Form inputs real-time sync with preview
             const formInputs = [
                 "supplier-name", "supplier-dealer-desc", "supplier-address", "supplier-gstin", 
-                "supplier-phone", "customer-billing-address", "customer-state",
+                "supplier-phone", "customer-billing-address", "customer-shipping-address", "customer-state",
                 "invoice-number", "invoice-date", "place-of-supply", "reverse-charge", "tax-calculation-mode",
                 "bank-name", "account-name", "account-number", "account-type", 
                 "ifsc-code", "bank-branch", "bank-phone", "upi-id", "terms-text", 
@@ -370,6 +370,7 @@
             const bankBranch = document.getElementById("bank-branch").value || "-";
             
             const cBillingDetails = document.getElementById("customer-billing-address").value || "";
+            const cShippingDetails = document.getElementById("customer-shipping-address").value.trim();
             
             const invNo = document.getElementById("invoice-number").value || "-";
             const invDateVal = document.getElementById("invoice-date").value;
@@ -440,29 +441,32 @@
             };
 
             const parsedCust = parseCustomerDetails(cBillingDetails);
+            const shippingSource = cShippingDetails || cBillingDetails;
+            const parsedShipping = parseCustomerDetails(shippingSource);
             const customerStateText = cStateSelect.selectedIndex > 0 ? cStateSelect.value : "-";
 
-            // Populate Customer Details Billed To in a single formatted block
-            let customerHTML = `<strong>${parsedCust.name}</strong><br>`;
-            if (parsedCust.address && parsedCust.address !== "-") {
-                customerHTML += parsedCust.address.replace(/,\s*/g, ",<br>") + "<br>";
-            }
-            if (parsedCust.mobile && parsedCust.mobile !== "-") {
-                customerHTML += `Mobile: ${parsedCust.mobile}<br>`;
-            }
-            if (parsedCust.email && parsedCust.email !== "-") {
-                customerHTML += `Email: ${parsedCust.email}<br>`;
-            }
-            if (parsedCust.gstin) {
-                customerHTML += `<strong>GSTIN : ${parsedCust.gstin}</strong>`;
-            }
-            document.getElementById("p-customer-address-details").innerHTML = customerHTML;
+            const buildCustomerAddressHTML = (parsed) => {
+                let html = `<strong>${parsed.name}</strong><br>`;
+                if (parsed.address && parsed.address !== "-") {
+                    html += parsed.address.replace(/,\s*/g, ",<br>") + "<br>";
+                }
+                if (parsed.mobile && parsed.mobile !== "-") {
+                    html += `Mobile: ${parsed.mobile}<br>`;
+                }
+                if (parsed.email && parsed.email !== "-") {
+                    html += `Email: ${parsed.email}<br>`;
+                }
+                if (parsed.gstin) {
+                    html += `<strong>GSTIN : ${parsed.gstin}</strong>`;
+                }
+                return html;
+            };
 
-            // Populate Place of Supply
-            const posStateSelect = document.getElementById("place-of-supply");
-            const posStateText = posStateSelect.selectedIndex > 0 ? posStateSelect.value : "-";
-            const posStateCode = posStateSelect.selectedIndex > 0 ? posStateSelect.options[posStateSelect.selectedIndex].dataset.code : "";
-            document.getElementById("p-place-of-supply-display").innerHTML = `${posStateText} [${posStateCode || "-"}]`;
+            // Populate Billing Address
+            document.getElementById("p-customer-address-details").innerHTML = buildCustomerAddressHTML(parsedCust);
+
+            // Populate Shipping Address (same as billing when shipping field is blank)
+            document.getElementById("p-place-of-supply-display").innerHTML = buildCustomerAddressHTML(parsedShipping);
 
             // Determine GST Type (CGST + SGST vs IGST)
             let isIntraState = true;
@@ -477,8 +481,8 @@
                     <th style="width: 5%; text-align: center;">SL. NO.</th>
                     <th style="width: 35%; text-align: left;">PRODUCT</th>
                     <th style="width: 10%; text-align: center;">HSN CODE</th>
-                    <th style="width: 10%; text-align: center;">QTY / NOS.</th>
                     <th style="width: 10%; text-align: right;">PRICE</th>
+                    <th style="width: 10%; text-align: center;">QTY / NOS.</th>
                     <th style="width: 8%; text-align: right;">CGST</th>
                     <th style="width: 8%; text-align: right;">SGST</th>
                     <th style="width: 8%; text-align: right;">GST</th>
@@ -489,8 +493,8 @@
                     <th style="width: 5%; text-align: center;">SL. NO.</th>
                     <th style="width: 40%; text-align: left;">PRODUCT</th>
                     <th style="width: 10%; text-align: center;">HSN CODE</th>
-                    <th style="width: 10%; text-align: center;">QTY / NOS.</th>
                     <th style="width: 10%; text-align: right;">PRICE</th>
+                    <th style="width: 10%; text-align: center;">QTY / NOS.</th>
                     <th style="width: 10%; text-align: right;">IGST</th>
                     <th style="width: 10%; text-align: right;">GST</th>
                     <th style="width: 12%; text-align: right;">AMOUNT (RS)</th>
@@ -560,8 +564,8 @@
                         <td style="text-align: center;">${index + 1}</td>
                         <td style="text-align: left;"><strong>${item.description || 'Description'}</strong></td>
                         <td style="text-align: center;">${hsn}</td>
-                        <td style="text-align: center;">${qtyText}</td>
                         <td style="text-align: right;">${formatIndianInvoiceCurrency(displayRate)}</td>
+                        <td style="text-align: center;">${qtyText}</td>
                         <td style="text-align: right;">${formatIndianInvoiceCurrency(cgstAmount)}</td>
                         <td style="text-align: right;">${formatIndianInvoiceCurrency(sgstAmount)}</td>
                         <td style="text-align: right;">${formatIndianInvoiceCurrency(taxAmount)}</td>
@@ -572,8 +576,8 @@
                         <td style="text-align: center;">${index + 1}</td>
                         <td style="text-align: left;"><strong>${item.description || 'Description'}</strong></td>
                         <td style="text-align: center;">${hsn}</td>
-                        <td style="text-align: center;">${qtyText}</td>
                         <td style="text-align: right;">${formatIndianInvoiceCurrency(displayRate)}</td>
+                        <td style="text-align: center;">${qtyText}</td>
                         <td style="text-align: right;">${formatIndianInvoiceCurrency(igstAmount)}</td>
                         <td style="text-align: right;">${formatIndianInvoiceCurrency(taxAmount)}</td>
                         <td style="text-align: right; font-weight: bold;">${formatIndianInvoiceCurrency(totalRowValue)}</td>
@@ -652,10 +656,6 @@
             document.getElementById("p-bank-name").textContent = bankName;
             document.getElementById("p-bank-branch").textContent = bankBranch;
             document.getElementById("p-bank-ifsc").textContent = ifscCode;
-
-            // 9. Signatory Area
-            document.getElementById("p-sig-supplier-name-for").textContent = sName.toUpperCase();
-            document.getElementById("p-signature-graphic").textContent = sigNameVal;
         }
 
         // Download PDF using html2pdf.js

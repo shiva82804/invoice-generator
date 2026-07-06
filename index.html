@@ -720,29 +720,29 @@ textarea {
     flex-direction: column;
     align-items: flex-end;
     justify-content: flex-end;
-}
-
-.for-supplier-title {
-    font-size: 10.5px;
-    margin-bottom: 12px;
+    background: transparent;
 }
 
 .signature-area {
-    margin-top: 10px;
-    height: 40px;
     display: flex;
-    align-items: center;
-    justify-content: center;
+    align-items: flex-end;
+    justify-content: flex-end;
     width: 100%;
+    background: transparent;
+    line-height: 0;
 }
 
-.signature-graphic {
-    font-family: 'Caveat', cursive;
-    font-size: 32px;
-    font-weight: 700;
-    color: #000000;
+.signature-image {
+    height: auto;
+    max-height: 78px;
+    width: auto;
+    max-width: 220px;
+    object-fit: contain;
     user-select: none;
-    transform: rotate(-1deg);
+    background: transparent;
+    mix-blend-mode: multiply;
+    filter: contrast(1.08);
+    opacity: 0.97;
 }
 
 /* Responsive Grid / Desktop styling */
@@ -840,8 +840,10 @@ textarea {
         print-color-adjust: exact;
     }
     
-    .signature-graphic {
-        color: #000000 !important;
+    .signature-image {
+        mix-blend-mode: multiply;
+        filter: contrast(1.08);
+        opacity: 0.97;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
@@ -1117,9 +1119,9 @@ textarea {
                                 <!-- Populated dynamically -->
                             </div>
                         </div>
-                        <!-- Cell 4: Place of Supply / State -->
+                        <!-- Cell 4: Shipping Address -->
                         <div class="grid-cell cell-pos">
-                            <div class="pos-header">PLACE OF SUPPLY :</div>
+                            <div class="pos-header">SHIPPING ADDRESS :</div>
                             <div class="pos-details" id="p-place-of-supply-display">
                                 <!-- Populated dynamically -->
                             </div>
@@ -1164,10 +1166,9 @@ textarea {
                         </div>
 
                         <!-- Right side: Signature area -->
-<div class="signature-box-main">
-                            <div class="for-supplier-title">For <strong id="p-sig-supplier-name-for">-</strong></div>
+                        <div class="signature-box-main">
                             <div class="signature-area">
-                                <span class="signature-graphic" id="p-signature-graphic">-</span>
+                                <img src="ss sign.jpg" alt="Authorised Signatory - SS WATER MANAGEMENT" class="signature-image" id="p-signature-graphic">
                             </div>
                         </div>
                     </div>
@@ -1549,6 +1550,7 @@ textarea {
             const bankBranch = document.getElementById("bank-branch").value || "-";
             
             const cBillingDetails = document.getElementById("customer-billing-address").value || "";
+            const cShippingDetails = document.getElementById("customer-shipping-address").value.trim();
             
             const invNo = document.getElementById("invoice-number").value || "-";
             const invDateVal = document.getElementById("invoice-date").value;
@@ -1619,29 +1621,32 @@ textarea {
             };
 
             const parsedCust = parseCustomerDetails(cBillingDetails);
+            const shippingSource = cShippingDetails || cBillingDetails;
+            const parsedShipping = parseCustomerDetails(shippingSource);
             const customerStateText = cStateSelect.selectedIndex > 0 ? cStateSelect.value : "-";
 
-            // Populate Customer Details Billed To in a single formatted block
-            let customerHTML = `<strong>${parsedCust.name}</strong><br>`;
-            if (parsedCust.address && parsedCust.address !== "-") {
-                customerHTML += parsedCust.address.replace(/,\s*/g, ",<br>") + "<br>";
-            }
-            if (parsedCust.mobile && parsedCust.mobile !== "-") {
-                customerHTML += `Mobile: ${parsedCust.mobile}<br>`;
-            }
-            if (parsedCust.email && parsedCust.email !== "-") {
-                customerHTML += `Email: ${parsedCust.email}<br>`;
-            }
-            if (parsedCust.gstin) {
-                customerHTML += `<strong>GSTIN : ${parsedCust.gstin}</strong>`;
-            }
-            document.getElementById("p-customer-address-details").innerHTML = customerHTML;
+            const buildCustomerAddressHTML = (parsed) => {
+                let html = `<strong>${parsed.name}</strong><br>`;
+                if (parsed.address && parsed.address !== "-") {
+                    html += parsed.address.replace(/,\s*/g, ",<br>") + "<br>";
+                }
+                if (parsed.mobile && parsed.mobile !== "-") {
+                    html += `Mobile: ${parsed.mobile}<br>`;
+                }
+                if (parsed.email && parsed.email !== "-") {
+                    html += `Email: ${parsed.email}<br>`;
+                }
+                if (parsed.gstin) {
+                    html += `<strong>GSTIN : ${parsed.gstin}</strong>`;
+                }
+                return html;
+            };
 
-            // Populate Place of Supply
-            const posStateSelect = document.getElementById("place-of-supply");
-            const posStateText = posStateSelect.selectedIndex > 0 ? posStateSelect.value : "-";
-            const posStateCode = posStateSelect.selectedIndex > 0 ? posStateSelect.options[posStateSelect.selectedIndex].dataset.code : "";
-            document.getElementById("p-place-of-supply-display").innerHTML = `${posStateText} [${posStateCode || "-"}]`;
+            // Populate Billing Address
+            document.getElementById("p-customer-address-details").innerHTML = buildCustomerAddressHTML(parsedCust);
+
+            // Populate Shipping Address (same as billing when shipping field is blank)
+            document.getElementById("p-place-of-supply-display").innerHTML = buildCustomerAddressHTML(parsedShipping);
 
             // Determine GST Type (CGST + SGST vs IGST)
             let isIntraState = true;
@@ -1656,8 +1661,8 @@ textarea {
                     <th style="width: 5%; text-align: center;">SL. NO.</th>
                     <th style="width: 35%; text-align: left;">PRODUCT</th>
                     <th style="width: 10%; text-align: center;">HSN CODE</th>
-                    <th style="width: 10%; text-align: center;">QTY / NOS.</th>
                     <th style="width: 10%; text-align: right;">PRICE</th>
+                    <th style="width: 10%; text-align: center;">QTY / NOS.</th>
                     <th style="width: 8%; text-align: right;">CGST</th>
                     <th style="width: 8%; text-align: right;">SGST</th>
                     <th style="width: 8%; text-align: right;">GST</th>
@@ -1668,8 +1673,8 @@ textarea {
                     <th style="width: 5%; text-align: center;">SL. NO.</th>
                     <th style="width: 40%; text-align: left;">PRODUCT</th>
                     <th style="width: 10%; text-align: center;">HSN CODE</th>
-                    <th style="width: 10%; text-align: center;">QTY / NOS.</th>
                     <th style="width: 10%; text-align: right;">PRICE</th>
+                    <th style="width: 10%; text-align: center;">QTY / NOS.</th>
                     <th style="width: 10%; text-align: right;">IGST</th>
                     <th style="width: 10%; text-align: right;">GST</th>
                     <th style="width: 12%; text-align: right;">AMOUNT (RS)</th>
@@ -1739,8 +1744,8 @@ textarea {
                         <td style="text-align: center;">${index + 1}</td>
                         <td style="text-align: left;"><strong>${item.description || 'Description'}</strong></td>
                         <td style="text-align: center;">${hsn}</td>
-                        <td style="text-align: center;">${qtyText}</td>
                         <td style="text-align: right;">${formatIndianInvoiceCurrency(displayRate)}</td>
+                        <td style="text-align: center;">${qtyText}</td>
                         <td style="text-align: right;">${formatIndianInvoiceCurrency(cgstAmount)}</td>
                         <td style="text-align: right;">${formatIndianInvoiceCurrency(sgstAmount)}</td>
                         <td style="text-align: right;">${formatIndianInvoiceCurrency(taxAmount)}</td>
@@ -1751,8 +1756,8 @@ textarea {
                         <td style="text-align: center;">${index + 1}</td>
                         <td style="text-align: left;"><strong>${item.description || 'Description'}</strong></td>
                         <td style="text-align: center;">${hsn}</td>
-                        <td style="text-align: center;">${qtyText}</td>
                         <td style="text-align: right;">${formatIndianInvoiceCurrency(displayRate)}</td>
+                        <td style="text-align: center;">${qtyText}</td>
                         <td style="text-align: right;">${formatIndianInvoiceCurrency(igstAmount)}</td>
                         <td style="text-align: right;">${formatIndianInvoiceCurrency(taxAmount)}</td>
                         <td style="text-align: right; font-weight: bold;">${formatIndianInvoiceCurrency(totalRowValue)}</td>
@@ -1831,10 +1836,6 @@ textarea {
             document.getElementById("p-bank-name").textContent = bankName;
             document.getElementById("p-bank-branch").textContent = bankBranch;
             document.getElementById("p-bank-ifsc").textContent = ifscCode;
-
-            // 9. Signatory Area
-            document.getElementById("p-sig-supplier-name-for").textContent = sName.toUpperCase();
-            document.getElementById("p-signature-graphic").textContent = sigNameVal;
         }
 
         // Download PDF using html2pdf.js
