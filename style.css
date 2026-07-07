@@ -452,6 +452,16 @@ textarea {
     padding-bottom: 5px;
 }
 
+.logo-left, .logo-left img {
+    width: 220px !important;
+    height: 60px !important;
+}
+
+.logo-right, .logo-right img {
+    width: 165px !important;
+    height: 60px !important;
+}
+
 .header-divider {
     border: none;
     border-top: 2px solid #000000;
@@ -725,9 +735,9 @@ textarea {
 
 .signature-image {
     height: auto;
-    max-height: 78px;
+    max-height: 110px;
     width: auto;
-    max-width: 220px;
+    max-width: 300px;
     object-fit: contain;
     user-select: none;
     background: transparent;

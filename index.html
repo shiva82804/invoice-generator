@@ -461,6 +461,16 @@ textarea {
     padding-bottom: 5px;
 }
 
+.logo-left, .logo-left img {
+    width: 220px !important;
+    height: 60px !important;
+}
+
+.logo-right, .logo-right img {
+    width: 165px !important;
+    height: 60px !important;
+}
+
 .header-divider {
     border: none;
     border-top: 2px solid #000000;
@@ -734,9 +744,9 @@ textarea {
 
 .signature-image {
     height: auto;
-    max-height: 78px;
+    max-height: 110px;
     width: auto;
-    max-width: 220px;
+    max-width: 300px;
     object-fit: contain;
     user-select: none;
     background: transparent;
@@ -933,6 +943,10 @@ textarea {
                             <label for="customer-shipping-address">Shipping Details (Leave blank if same as Billing)</label>
                             <textarea id="customer-shipping-address" placeholder="Enter shipping details if different from billing details" rows="4"></textarea>
                         </div>
+                        <div class="form-group col-span-2">
+                            <label for="customer-gstin">GSTIN (Optional, defaults to URP)</label>
+                            <input type="text" id="customer-gstin" placeholder="E.g. 36DIYPG8223A1Z5 (Leave blank for URP)" maxlength="15">
+                        </div>
                         <div class="form-group">
                             <label for="customer-state">State *</label>
                             <select id="customer-state" required></select>
@@ -964,13 +978,6 @@ textarea {
                             <select id="place-of-supply" required></select>
                         </div>
                         <div class="form-group">
-                            <label for="reverse-charge">Reverse Charge *</label>
-                            <select id="reverse-charge" required>
-                                <option value="NO" selected>NO</option>
-                                <option value="YES">YES</option>
-                            </select>
-                        </div>
-                        <div class="form-group col-span-2">
                             <label for="tax-calculation-mode">Tax Calculation Mode *</label>
                             <select id="tax-calculation-mode" required>
                                 <option value="inclusive" selected>Tax Inclusive (Calculated backwards from Price)</option>
@@ -1109,7 +1116,6 @@ textarea {
                             <div class="meta-details">
                                 <p>Invoice No: <strong id="p-invoice-number">-</strong></p>
                                 <p>Invoice Date : <strong id="p-invoice-date">-</strong></p>
-                                <p>Reverse Charge : <strong id="p-reverse-charge">NO</strong></p>
                             </div>
                         </div>
                         <!-- Cell 3: Billing Address -->
@@ -1308,8 +1314,8 @@ textarea {
             // Form inputs real-time sync with preview
             const formInputs = [
                 "supplier-name", "supplier-dealer-desc", "supplier-address", "supplier-gstin", 
-                "supplier-phone", "customer-billing-address", "customer-shipping-address", "customer-state",
-                "invoice-number", "invoice-date", "place-of-supply", "reverse-charge", "tax-calculation-mode",
+                "supplier-phone", "customer-billing-address", "customer-shipping-address", "customer-gstin", "customer-state",
+                "invoice-number", "invoice-date", "place-of-supply", "tax-calculation-mode",
                 "bank-name", "account-name", "account-number", "account-type", 
                 "ifsc-code", "bank-branch", "bank-phone", "upi-id", "terms-text", 
                 "signature-name", "signature-title"
@@ -1551,10 +1557,10 @@ textarea {
             
             const cBillingDetails = document.getElementById("customer-billing-address").value || "";
             const cShippingDetails = document.getElementById("customer-shipping-address").value.trim();
+            const customerGstin = document.getElementById("customer-gstin").value.trim().toUpperCase();
             
             const invNo = document.getElementById("invoice-number").value || "-";
             const invDateVal = document.getElementById("invoice-date").value;
-            const revCharge = document.getElementById("reverse-charge").value || "NO";
             const taxMode = document.getElementById("tax-calculation-mode").value || "inclusive";
             const upiId = document.getElementById("upi-id").value || "-";
             
@@ -1583,7 +1589,6 @@ textarea {
             
             document.getElementById("p-invoice-number").textContent = invNo;
             document.getElementById("p-invoice-date").textContent = invDateFormatted;
-            document.getElementById("p-reverse-charge").textContent = revCharge;
 
             // Parse Customer Billing Info
             const parseCustomerDetails = (text) => {
@@ -1623,6 +1628,21 @@ textarea {
             const parsedCust = parseCustomerDetails(cBillingDetails);
             const shippingSource = cShippingDetails || cBillingDetails;
             const parsedShipping = parseCustomerDetails(shippingSource);
+            
+            let finalCustomerGstin = customerGstin;
+            if (!finalCustomerGstin) {
+                if (parsedCust.gstin && parsedCust.gstin !== "URP") {
+                    finalCustomerGstin = parsedCust.gstin;
+                } else if (parsedShipping.gstin && parsedShipping.gstin !== "URP") {
+                    finalCustomerGstin = parsedShipping.gstin;
+                } else {
+                    finalCustomerGstin = "";
+                }
+            }
+            
+            parsedCust.gstin = finalCustomerGstin;
+            parsedShipping.gstin = finalCustomerGstin;
+            
             const customerStateText = cStateSelect.selectedIndex > 0 ? cStateSelect.value : "-";
 
             const buildCustomerAddressHTML = (parsed) => {
@@ -1636,7 +1656,7 @@ textarea {
                 if (parsed.email && parsed.email !== "-") {
                     html += `Email: ${parsed.email}<br>`;
                 }
-                if (parsed.gstin) {
+                if (parsed.gstin && parsed.gstin !== "URP" && parsed.gstin !== "") {
                     html += `<strong>GSTIN : ${parsed.gstin}</strong>`;
                 }
                 return html;
@@ -1920,7 +1940,7 @@ textarea {
             // Meta
             document.getElementById("invoice-number").value = "01";
             document.getElementById("invoice-date").value = "2026-04-04";
-            document.getElementById("reverse-charge").value = "NO";
+            document.getElementById("customer-gstin").value = "";
             document.getElementById("tax-calculation-mode").value = "inclusive";
 
             // Place of Supply: Telangana (intra-state split CGST/SGST)
@@ -2022,7 +2042,6 @@ textarea {
                     bankPhone: document.getElementById("bank-phone").value,
                     upiId: document.getElementById("upi-id").value,
                     
-                    reverseCharge: document.getElementById("reverse-charge").value,
                     taxMode: document.getElementById("tax-calculation-mode").value,
                     
                     terms: document.getElementById("terms-text").value,
@@ -2065,7 +2084,6 @@ textarea {
                 if (profile.bankPhone) document.getElementById("bank-phone").value = profile.bankPhone;
                 if (profile.upiId) document.getElementById("upi-id").value = profile.upiId;
                 
-                if (profile.reverseCharge) document.getElementById("reverse-charge").value = profile.reverseCharge;
                 if (profile.taxMode) document.getElementById("tax-calculation-mode").value = profile.taxMode;
                 
                 if (profile.terms) document.getElementById("terms-text").value = profile.terms;

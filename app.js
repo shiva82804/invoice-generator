@@ -128,8 +128,8 @@
             // Form inputs real-time sync with preview
             const formInputs = [
                 "supplier-name", "supplier-dealer-desc", "supplier-address", "supplier-gstin", 
-                "supplier-phone", "customer-billing-address", "customer-shipping-address", "customer-state",
-                "invoice-number", "invoice-date", "place-of-supply", "reverse-charge", "tax-calculation-mode",
+                "supplier-phone", "customer-billing-address", "customer-shipping-address", "customer-gstin", "customer-state",
+                "invoice-number", "invoice-date", "place-of-supply", "tax-calculation-mode",
                 "bank-name", "account-name", "account-number", "account-type", 
                 "ifsc-code", "bank-branch", "bank-phone", "upi-id", "terms-text", 
                 "signature-name", "signature-title"
@@ -371,10 +371,10 @@
             
             const cBillingDetails = document.getElementById("customer-billing-address").value || "";
             const cShippingDetails = document.getElementById("customer-shipping-address").value.trim();
+            const customerGstin = document.getElementById("customer-gstin").value.trim().toUpperCase();
             
             const invNo = document.getElementById("invoice-number").value || "-";
             const invDateVal = document.getElementById("invoice-date").value;
-            const revCharge = document.getElementById("reverse-charge").value || "NO";
             const taxMode = document.getElementById("tax-calculation-mode").value || "inclusive";
             const upiId = document.getElementById("upi-id").value || "-";
             
@@ -403,7 +403,6 @@
             
             document.getElementById("p-invoice-number").textContent = invNo;
             document.getElementById("p-invoice-date").textContent = invDateFormatted;
-            document.getElementById("p-reverse-charge").textContent = revCharge;
 
             // Parse Customer Billing Info
             const parseCustomerDetails = (text) => {
@@ -443,6 +442,21 @@
             const parsedCust = parseCustomerDetails(cBillingDetails);
             const shippingSource = cShippingDetails || cBillingDetails;
             const parsedShipping = parseCustomerDetails(shippingSource);
+            
+            let finalCustomerGstin = customerGstin;
+            if (!finalCustomerGstin) {
+                if (parsedCust.gstin && parsedCust.gstin !== "URP") {
+                    finalCustomerGstin = parsedCust.gstin;
+                } else if (parsedShipping.gstin && parsedShipping.gstin !== "URP") {
+                    finalCustomerGstin = parsedShipping.gstin;
+                } else {
+                    finalCustomerGstin = "";
+                }
+            }
+            
+            parsedCust.gstin = finalCustomerGstin;
+            parsedShipping.gstin = finalCustomerGstin;
+            
             const customerStateText = cStateSelect.selectedIndex > 0 ? cStateSelect.value : "-";
 
             const buildCustomerAddressHTML = (parsed) => {
@@ -456,7 +470,7 @@
                 if (parsed.email && parsed.email !== "-") {
                     html += `Email: ${parsed.email}<br>`;
                 }
-                if (parsed.gstin) {
+                if (parsed.gstin && parsed.gstin !== "URP" && parsed.gstin !== "") {
                     html += `<strong>GSTIN : ${parsed.gstin}</strong>`;
                 }
                 return html;
@@ -731,7 +745,7 @@
             document.getElementById("supplier-state-code").value = "36";
 
             // Customer / Billing Details Text Area
-            document.getElementById("customer-billing-address").value = "Mr.G Vidya sagar\nSenior advocate\nH No 1-8-475\nSri Venkateshwara swamy temple lane\nChikkadpalli\nHydrabad\n500020\nPh.No : 9848602522";
+            document.getElementById("customer-billing-address").value = "Mr.Shiva\nH No 1-1-1\n500098 \nPh.No : 1231231234564";
             
             const customerState = document.getElementById("customer-state");
             customerState.value = "Telangana";
@@ -740,7 +754,7 @@
             // Meta
             document.getElementById("invoice-number").value = "01";
             document.getElementById("invoice-date").value = "2026-04-04";
-            document.getElementById("reverse-charge").value = "NO";
+            document.getElementById("customer-gstin").value = "";
             document.getElementById("tax-calculation-mode").value = "inclusive";
 
             // Place of Supply: Telangana (intra-state split CGST/SGST)
@@ -842,7 +856,6 @@
                     bankPhone: document.getElementById("bank-phone").value,
                     upiId: document.getElementById("upi-id").value,
                     
-                    reverseCharge: document.getElementById("reverse-charge").value,
                     taxMode: document.getElementById("tax-calculation-mode").value,
                     
                     terms: document.getElementById("terms-text").value,
@@ -885,7 +898,6 @@
                 if (profile.bankPhone) document.getElementById("bank-phone").value = profile.bankPhone;
                 if (profile.upiId) document.getElementById("upi-id").value = profile.upiId;
                 
-                if (profile.reverseCharge) document.getElementById("reverse-charge").value = profile.reverseCharge;
                 if (profile.taxMode) document.getElementById("tax-calculation-mode").value = profile.taxMode;
                 
                 if (profile.terms) document.getElementById("terms-text").value = profile.terms;
