@@ -745,7 +745,7 @@
             document.getElementById("supplier-state-code").value = "36";
 
             // Customer / Billing Details Text Area
-            document.getElementById("customer-billing-address").value = "Mr.Shiva\nH No 1-1-1\n500098 \nPh.No : 1231231234564";
+            document.getElementById("customer-billing-address").value = "Jane Doe\nManager\nPlot No. 12, Sector 4\nTech Park, Madhapur\nHyderabad\n500081\nPh.No : 9876543210";
             
             const customerState = document.getElementById("customer-state");
             customerState.value = "Telangana";
