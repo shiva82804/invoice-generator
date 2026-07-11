@@ -41,6 +41,13 @@
         // App State
         let invoiceItems = [];
 
+        const defaultTaxTerms = "GOODS ONCE SOLD WILL NOT BE TAKEN BACK OR EXCHANGED\nONE YEAR WARRANTY FROM THE DATE OF INSTALLATION.\nCONSUMABLES NOT COVERED UNDER WARRANTY.\nInterest at the rate of 24% will be charged if the payment is not received within 15 days from the date of Delivery Challan.";
+
+        const defaultProformaTerms = "1. This is a Proforma Invoice, not a Tax Invoice. Goods will be dispatched only after receiving 100% advance payment.\n2. The prices quoted above are valid for 30 days from the date of this Proforma Invoice.\n3. Delivery will be scheduled within 7-10 working days from receipt of confirmation and advance payment.\n4. Goods once sold will not be taken back or exchanged.";
+
+        let taxInvoiceTerms = defaultTaxTerms;
+        let proformaInvoiceTerms = defaultProformaTerms;
+
         // Initialize Elements
         document.addEventListener("DOMContentLoaded", () => {
             populateStateDropdowns();
@@ -119,6 +126,22 @@
                 calculateAndUpdateInvoice();
             });
 
+            // Invoice Type change event listener to switch terms
+            document.getElementById("invoice-type").addEventListener("change", (e) => {
+                const selectedType = e.target.value;
+                const termsTextarea = document.getElementById("terms-text");
+                
+                // Swap terms
+                if (selectedType === 'tax') {
+                    termsTextarea.value = taxInvoiceTerms;
+                } else {
+                    termsTextarea.value = proformaInvoiceTerms;
+                }
+                
+                saveToLocalStorage();
+                calculateAndUpdateInvoice();
+            });
+
             // Add item button
             document.getElementById("add-item-btn").addEventListener("click", () => {
                 addNewItem();
@@ -150,6 +173,20 @@
             });
 
             // Action Buttons
+            document.getElementById("reset-terms-btn").addEventListener("click", () => {
+                const currentType = document.getElementById("invoice-type").value;
+                const termsTextarea = document.getElementById("terms-text");
+                if (currentType === 'tax') {
+                    taxInvoiceTerms = defaultTaxTerms;
+                    termsTextarea.value = defaultTaxTerms;
+                } else {
+                    proformaInvoiceTerms = defaultProformaTerms;
+                    termsTextarea.value = defaultProformaTerms;
+                }
+                saveToLocalStorage();
+                calculateAndUpdateInvoice();
+            });
+
             document.getElementById("load-sample-btn").addEventListener("click", loadSampleData);
             document.getElementById("reset-btn").addEventListener("click", resetForm);
             document.getElementById("print-invoice-btn").addEventListener("click", () => window.print());
@@ -394,6 +431,16 @@
 
             // 2. Render Supplier static fields in Preview Sheet
             document.getElementById("p-supplier-name").textContent = sName;
+            
+            const invType = document.getElementById("invoice-type").value;
+            const previewTitle = document.getElementById("p-invoice-title");
+            if (previewTitle) {
+                previewTitle.textContent = invType === 'proforma' ? 'PROFORMA INVOICE' : 'TAX INVOICE';
+            }
+            const previewLabel = document.getElementById("p-invoice-label");
+            if (previewLabel) {
+                previewLabel.textContent = invType === 'proforma' ? 'Proforma No:' : 'Invoice No:';
+            }
             
             let supplierHTML = sAddress.replace(/\n/g, "<br>") + "<br>";
             if (sPhone) supplierHTML += `Ph.No : ${sPhone}<br>`;
@@ -752,6 +799,7 @@
             document.getElementById("customer-state-code").value = "36";
 
             // Meta
+            document.getElementById("invoice-type").value = "tax";
             document.getElementById("invoice-number").value = "01";
             document.getElementById("invoice-date").value = "2026-04-04";
             document.getElementById("customer-gstin").value = "";
@@ -772,7 +820,9 @@
             document.getElementById("upi-id").value = "8790513762-2@ybl";
 
             // Terms
-            document.getElementById("terms-text").value = "GOODS ONCE SOLD WILL NOT BE TAKEN BACK OR EXCHANGED\nONE YEAR WARRANTY FROM THE DATE OF INSTALLATION.\nCONSUMABLES NOT COVERED UNDER WARRANTY.\nInterest at the rate of 24% will be charged if the payment is not received within 15 days from the date of Delivery Challan.";
+            taxInvoiceTerms = "GOODS ONCE SOLD WILL NOT BE TAKEN BACK OR EXCHANGED\nONE YEAR WARRANTY FROM THE DATE OF INSTALLATION.\nCONSUMABLES NOT COVERED UNDER WARRANTY.\nInterest at the rate of 24% will be charged if the payment is not received within 15 days from the date of Delivery Challan.";
+            proformaInvoiceTerms = defaultProformaTerms;
+            document.getElementById("terms-text").value = taxInvoiceTerms;
 
             // Signatures
             document.getElementById("signature-name").value = "G.Ranjith";
@@ -807,7 +857,11 @@
                 document.getElementById("invoice-form").reset();
                 
                 // Reset states
+                taxInvoiceTerms = defaultTaxTerms;
+                proformaInvoiceTerms = defaultProformaTerms;
                 populateStateDropdowns();
+                document.getElementById("invoice-type").value = "tax";
+                document.getElementById("terms-text").value = defaultTaxTerms;
                 document.getElementById("supplier-state-code").value = "";
                 document.getElementById("customer-state-code").value = "";
                 
@@ -838,6 +892,16 @@
         function saveToLocalStorage() {
             try {
                 if (!isStorageAvailable()) return;
+                
+                // Keep the active memory state in sync before saving
+                const activeType = document.getElementById("invoice-type").value;
+                const activeTerms = document.getElementById("terms-text").value;
+                if (activeType === 'tax') {
+                    taxInvoiceTerms = activeTerms;
+                } else {
+                    proformaInvoiceTerms = activeTerms;
+                }
+
                 const profile = {
                     name: document.getElementById("supplier-name").value,
                     dealerDesc: document.getElementById("supplier-dealer-desc").value,
@@ -858,7 +922,10 @@
                     
                     taxMode: document.getElementById("tax-calculation-mode").value,
                     
-                    terms: document.getElementById("terms-text").value,
+                    invoiceType: activeType,
+                    terms: activeTerms,
+                    taxTerms: taxInvoiceTerms,
+                    proformaTerms: proformaInvoiceTerms,
                     sigName: document.getElementById("signature-name").value,
                     sigTitle: document.getElementById("signature-title").value
                 };
@@ -900,7 +967,30 @@
                 
                 if (profile.taxMode) document.getElementById("tax-calculation-mode").value = profile.taxMode;
                 
-                if (profile.terms) document.getElementById("terms-text").value = profile.terms;
+                if (profile.invoiceType) {
+                    document.getElementById("invoice-type").value = profile.invoiceType;
+                }
+                
+                if (profile.taxTerms) {
+                    taxInvoiceTerms = profile.taxTerms;
+                } else if (profile.terms && (!profile.invoiceType || profile.invoiceType === 'tax')) {
+                    taxInvoiceTerms = profile.terms;
+                }
+                
+                if (profile.proformaTerms) {
+                    proformaInvoiceTerms = profile.proformaTerms;
+                } else if (profile.terms && profile.invoiceType === 'proforma') {
+                    proformaInvoiceTerms = profile.terms;
+                }
+
+                // Auto-repair race condition overwrite state on page load
+                if (proformaInvoiceTerms === taxInvoiceTerms && taxInvoiceTerms === defaultTaxTerms) {
+                    proformaInvoiceTerms = defaultProformaTerms;
+                }
+
+                const currentType = document.getElementById("invoice-type").value;
+                document.getElementById("terms-text").value = currentType === 'tax' ? taxInvoiceTerms : proformaInvoiceTerms;
+
                 if (profile.sigName) document.getElementById("signature-name").value = profile.sigName;
                 if (profile.sigTitle) document.getElementById("signature-title").value = profile.sigTitle;
                 
