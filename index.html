@@ -1239,7 +1239,7 @@ textarea {
 
         const defaultTaxTerms = "GOODS ONCE SOLD WILL NOT BE TAKEN BACK OR EXCHANGED\nONE YEAR WARRANTY FROM THE DATE OF INSTALLATION.\nCONSUMABLES NOT COVERED UNDER WARRANTY.\nInterest at the rate of 24% will be charged if the payment is not received within 15 days from the date of Delivery Challan.";
 
-        const defaultProformaTerms = "1. This is a Proforma Invoice, not a Tax Invoice. Goods will be dispatched only after receiving 100% advance payment.\n2. The prices quoted above are valid for 30 days from the date of this Proforma Invoice.\n3. Delivery will be scheduled within 7-10 working days from receipt of confirmation and advance payment.\n4. Goods once sold will not be taken back or exchanged.";
+        const defaultProformaTerms = "This is a Proforma Invoice, not a Tax Invoice. Goods will be dispatched only after receiving 100% advance payment.\nThe prices quoted above are valid for 30 days from the date of this Proforma Invoice.\nDelivery will be scheduled within 7-10 working days from receipt of confirmation and advance payment.\nGoods once sold will not be taken back or exchanged.";
 
         let taxInvoiceTerms = defaultTaxTerms;
         let proformaInvoiceTerms = defaultProformaTerms;
@@ -1902,7 +1902,9 @@ textarea {
             const termsLines = termsVal.split("\n").map(line => line.trim()).filter(Boolean);
             termsLines.forEach(line => {
                 const li = document.createElement("li");
-                li.textContent = line;
+                // Clean leading numbers (e.g. "1.", "2. ") to prevent duplication in ordered list
+                const cleanedLine = line.replace(/^\s*\d+[\s\.\)\-]+\s*/, '');
+                li.textContent = cleanedLine;
                 termsContainer.appendChild(li);
             });
 
@@ -2011,7 +2013,7 @@ textarea {
             document.getElementById("account-number").value = "925020030002346";
             document.getElementById("account-type").value = "Current Account";
             document.getElementById("ifsc-code").value = "UTIB0000008";
-            document.getElementById("bank-branch").value = "Begumpet";
+            document.getElementById("bank-branch").value = "Hyderabad Main Branch";
             document.getElementById("bank-phone").value = "9581826599";
             document.getElementById("upi-id").value = "8790513762-2@ybl";
 
