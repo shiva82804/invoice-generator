@@ -45,8 +45,11 @@
 
         const defaultProformaTerms = "1. This is a Proforma Invoice, not a Tax Invoice. Goods will be dispatched only after receiving 100% advance payment.\n2. The prices quoted above are valid for 30 days from the date of this Proforma Invoice.\n3. Delivery will be scheduled within 7-10 working days from receipt of confirmation and advance payment.\n4. Goods once sold will not be taken back or exchanged.";
 
+        const defaultBillTerms = "1. Goods once sold will not be taken back or exchanged.\n2. Warranty is subject to manufacturer's policy.\n3. Payment must be made upon receipt of this bill.";
+
         let taxInvoiceTerms = defaultTaxTerms;
         let proformaInvoiceTerms = defaultProformaTerms;
+        let billTerms = defaultBillTerms;
 
         // Initialize Elements
         document.addEventListener("DOMContentLoaded", () => {
@@ -126,17 +129,30 @@
                 calculateAndUpdateInvoice();
             });
 
-            // Invoice Type change event listener to switch terms
+            // Invoice Type change event listener to switch terms and toggle GST UI
             document.getElementById("invoice-type").addEventListener("change", (e) => {
                 const selectedType = e.target.value;
                 const termsTextarea = document.getElementById("terms-text");
+                const taxModeGroup = document.getElementById("tax-mode-group");
                 
                 // Swap terms
                 if (selectedType === 'tax') {
                     termsTextarea.value = taxInvoiceTerms;
-                } else {
+                } else if (selectedType === 'proforma') {
                     termsTextarea.value = proformaInvoiceTerms;
+                } else {
+                    termsTextarea.value = billTerms;
                 }
+
+                // Toggle Tax Mode visibility
+                if (selectedType === 'bill') {
+                    if (taxModeGroup) taxModeGroup.classList.add('hidden');
+                } else {
+                    if (taxModeGroup) taxModeGroup.classList.remove('hidden');
+                }
+
+                // Re-render items to toggle GST rate visibility
+                renderItemCards();
                 
                 saveToLocalStorage();
                 calculateAndUpdateInvoice();
@@ -155,7 +171,7 @@
                 "invoice-number", "invoice-date", "place-of-supply", "tax-calculation-mode",
                 "bank-name", "account-name", "account-number", "account-type", 
                 "ifsc-code", "bank-branch", "bank-phone", "upi-id", "terms-text", 
-                "signature-name", "signature-title"
+                "signature-name", "signature-title", "show-signature"
             ];
 
             formInputs.forEach(id => {
@@ -179,9 +195,12 @@
                 if (currentType === 'tax') {
                     taxInvoiceTerms = defaultTaxTerms;
                     termsTextarea.value = defaultTaxTerms;
-                } else {
+                } else if (currentType === 'proforma') {
                     proformaInvoiceTerms = defaultProformaTerms;
                     termsTextarea.value = defaultProformaTerms;
+                } else {
+                    billTerms = defaultBillTerms;
+                    termsTextarea.value = defaultBillTerms;
                 }
                 saveToLocalStorage();
                 calculateAndUpdateInvoice();
@@ -253,9 +272,9 @@
                             <label>Description of Goods *</label>
                             <input type="text" class="item-desc" data-id="${item.id}" value="${item.description}" placeholder="E.g. AUTO SOFT AS 2" required>
                         </div>
-                        <div class="form-group">
+                        <div class="form-group ${document.getElementById("invoice-type").value === 'bill' ? 'hidden' : ''}">
                             <label>HSN Code *</label>
-                            <input type="text" class="item-hsn" data-id="${item.id}" value="${item.hsn}" placeholder="E.g. 8421" required>
+                            <input type="text" class="item-hsn" data-id="${item.id}" value="${item.hsn}" placeholder="E.g. 8421" ${document.getElementById("invoice-type").value === 'bill' ? '' : 'required'}>
                         </div>
                         <div class="form-group">
                             <label>Unit</label>
@@ -280,7 +299,7 @@
                             <label>Discount (%)</label>
                             <input type="number" step="any" min="0" max="100" class="item-disc" data-id="${item.id}" value="${item.discount}">
                         </div>
-                        <div class="form-group">
+                        <div class="form-group ${document.getElementById("invoice-type").value === 'bill' ? 'hidden' : ''}">
                             <label>GST Rate *</label>
                             <select class="item-gst" data-id="${item.id}">
                                 <option value="18" ${item.gstRate === 18 ? 'selected' : ''}>18%</option>
@@ -418,6 +437,17 @@
             const sigNameVal = document.getElementById("signature-name").value || "";
             const sigTitleVal = document.getElementById("signature-title").value || "Authorised Signatory";
 
+            // Toggle signature image visibility based on user preference
+            const showSignature = document.getElementById("show-signature") ? document.getElementById("show-signature").checked : true;
+            const sigGraphic = document.getElementById("p-signature-graphic");
+            if (sigGraphic) {
+                if (showSignature) {
+                    sigGraphic.style.display = "block";
+                } else {
+                    sigGraphic.style.display = "none";
+                }
+            }
+
             // Format Dates nicely (DD-MM-YYYY)
             const formatDate = (dateStr) => {
                 if (!dateStr) return "-";
@@ -435,16 +465,36 @@
             const invType = document.getElementById("invoice-type").value;
             const previewTitle = document.getElementById("p-invoice-title");
             if (previewTitle) {
-                previewTitle.textContent = invType === 'proforma' ? 'PROFORMA INVOICE' : 'TAX INVOICE';
+                if (invType === 'bill') {
+                    previewTitle.textContent = 'BILL RECEIPT';
+                } else if (invType === 'proforma') {
+                    previewTitle.textContent = 'PROFORMA INVOICE';
+                } else {
+                    previewTitle.textContent = 'TAX INVOICE';
+                }
             }
             const previewLabel = document.getElementById("p-invoice-label");
             if (previewLabel) {
-                previewLabel.textContent = invType === 'proforma' ? 'Proforma No:' : 'Invoice No:';
+                if (invType === 'bill') {
+                    previewLabel.textContent = 'Bill No:';
+                } else if (invType === 'proforma') {
+                    previewLabel.textContent = 'Proforma No:';
+                } else {
+                    previewLabel.textContent = 'Invoice No:';
+                }
+            }
+            const dateLabel = document.getElementById("p-date-label");
+            if (dateLabel) {
+                if (invType === 'bill') {
+                    dateLabel.textContent = 'Date';
+                } else {
+                    dateLabel.textContent = 'Invoice Date';
+                }
             }
             
             let supplierHTML = sAddress.replace(/\n/g, "<br>") + "<br>";
             if (sPhone) supplierHTML += `Ph.No : ${sPhone}<br>`;
-            if (sGstin) supplierHTML += `<strong>GSTIN : ${sGstin}</strong><br>`;
+            if (sGstin && invType !== 'bill') supplierHTML += `<strong>GSTIN : ${sGstin}</strong><br>`;
             if (sDealerDesc) supplierHTML += `<strong>${sDealerDesc}</strong>`;
             document.getElementById("p-supplier-address-details").innerHTML = supplierHTML;
             
@@ -517,7 +567,7 @@
                 if (parsed.email && parsed.email !== "-") {
                     html += `Email: ${parsed.email}<br>`;
                 }
-                if (parsed.gstin && parsed.gstin !== "URP" && parsed.gstin !== "") {
+                if (parsed.gstin && parsed.gstin !== "URP" && parsed.gstin !== "" && invType !== 'bill') {
                     html += `<strong>GSTIN : ${parsed.gstin}</strong>`;
                 }
                 return html;
@@ -537,7 +587,15 @@
             
             // 3. Render Table Headers dynamically
             const tableHead = document.getElementById("p-table-head");
-            if (isIntraState) {
+            if (invType === 'bill') {
+                tableHead.innerHTML = `
+                    <th style="width: 5%; text-align: center;">SL. NO.</th>
+                    <th style="width: 55%; text-align: left;">PRODUCT</th>
+                    <th style="width: 13%; text-align: right;">PRICE</th>
+                    <th style="width: 12%; text-align: center;">QTY / NOS.</th>
+                    <th style="width: 15%; text-align: right;">AMOUNT (RS)</th>
+                `;
+            } else if (isIntraState) {
                 tableHead.innerHTML = `
                     <th style="width: 5%; text-align: center;">SL. NO.</th>
                     <th style="width: 35%; text-align: left;">PRODUCT</th>
@@ -587,7 +645,13 @@
                 let totalRowValue = 0;
                 let displayRate = 0;
 
-                if (taxMode === "inclusive") {
+                if (invType === 'bill') {
+                    // GST is not calculated for bill receipt
+                    totalRowValue = qty * rate * (1 - discountPct / 100);
+                    taxableValue = totalRowValue;
+                    displayRate = rate;
+                    taxAmount = 0;
+                } else if (taxMode === "inclusive") {
                     // GST is inclusive, calculate backwards from price
                     totalRowValue = qty * rate * (1 - discountPct / 100);
                     taxableValue = totalRowValue / (1 + gstRate / 100);
@@ -603,14 +667,16 @@
                     displayRate = rate;
                 }
 
-                if (isIntraState) {
-                    cgstAmount = taxAmount / 2;
-                    sgstAmount = taxAmount / 2;
-                    totalCgst += cgstAmount;
-                    totalSgst += sgstAmount;
-                } else {
-                    igstAmount = taxAmount;
-                    totalIgst += igstAmount;
+                if (invType !== 'bill') {
+                    if (isIntraState) {
+                        cgstAmount = taxAmount / 2;
+                        sgstAmount = taxAmount / 2;
+                        totalCgst += cgstAmount;
+                        totalSgst += sgstAmount;
+                    } else {
+                        igstAmount = taxAmount;
+                        totalIgst += igstAmount;
+                    }
                 }
 
                 totalTaxable += taxableValue;
@@ -620,7 +686,15 @@
                 const row = document.createElement("tr");
                 const qtyText = (item.unit && item.unit.toLowerCase() === 'nos') ? `${qty}no's` : `${qty} ${item.unit || ''}`;
                 
-                if (isIntraState) {
+                if (invType === 'bill') {
+                    row.innerHTML = `
+                        <td style="text-align: center;">${index + 1}</td>
+                        <td style="text-align: left;"><strong>${item.description || 'Description'}</strong></td>
+                        <td style="text-align: right;">${formatIndianInvoiceCurrency(displayRate)}</td>
+                        <td style="text-align: center;">${qtyText}</td>
+                        <td style="text-align: right; font-weight: bold;">${formatIndianInvoiceCurrency(totalRowValue)}</td>
+                    `;
+                } else if (isIntraState) {
                     row.innerHTML = `
                         <td style="text-align: center;">${index + 1}</td>
                         <td style="text-align: left;"><strong>${item.description || 'Description'}</strong></td>
@@ -655,7 +729,15 @@
                 for (let i = 0; i < fillerCount; i++) {
                     const fillerRow = document.createElement("tr");
                     fillerRow.className = "filler-row";
-                    if (isIntraState) {
+                    if (invType === 'bill') {
+                        fillerRow.innerHTML = `
+                            <td>&nbsp;</td>
+                            <td>&nbsp;</td>
+                            <td>&nbsp;</td>
+                            <td>&nbsp;</td>
+                            <td>&nbsp;</td>
+                        `;
+                    } else if (isIntraState) {
                         fillerRow.innerHTML = `
                             <td>&nbsp;</td>
                             <td>&nbsp;</td>
@@ -686,7 +768,12 @@
             // 6. Append single TOTAL Row
             const rowTotal = document.createElement("tr");
             rowTotal.className = "total-row";
-            if (isIntraState) {
+            if (invType === 'bill') {
+                rowTotal.innerHTML = `
+                    <td colspan="4" style="text-align: left; font-weight: 800; text-transform: uppercase;">TOTAL</td>
+                    <td style="text-align: right; font-weight: 800;">${formatIndianInvoiceCurrency(totalInvoice)}</td>
+                `;
+            } else if (isIntraState) {
                 rowTotal.innerHTML = `
                     <td colspan="8" style="text-align: left; font-weight: 800; text-transform: uppercase;">TOTAL</td>
                     <td style="text-align: right; font-weight: 800;">${formatIndianInvoiceCurrency(totalInvoice)}</td>
@@ -898,8 +985,10 @@
                 const activeTerms = document.getElementById("terms-text").value;
                 if (activeType === 'tax') {
                     taxInvoiceTerms = activeTerms;
-                } else {
+                } else if (activeType === 'proforma') {
                     proformaInvoiceTerms = activeTerms;
+                } else {
+                    billTerms = activeTerms;
                 }
 
                 const profile = {
@@ -926,8 +1015,10 @@
                     terms: activeTerms,
                     taxTerms: taxInvoiceTerms,
                     proformaTerms: proformaInvoiceTerms,
+                    billTerms: billTerms,
                     sigName: document.getElementById("signature-name").value,
-                    sigTitle: document.getElementById("signature-title").value
+                    sigTitle: document.getElementById("signature-title").value,
+                    showSignature: document.getElementById("show-signature") ? document.getElementById("show-signature").checked : true
                 };
 
                 localStorage.setItem("gst_supplier_profile_target", JSON.stringify(profile));
@@ -982,6 +1073,12 @@
                 } else if (profile.terms && profile.invoiceType === 'proforma') {
                     proformaInvoiceTerms = profile.terms;
                 }
+                
+                if (profile.billTerms) {
+                    billTerms = profile.billTerms;
+                } else if (profile.terms && profile.invoiceType === 'bill') {
+                    billTerms = profile.terms;
+                }
 
                 // Auto-repair race condition overwrite state on page load
                 if (proformaInvoiceTerms === taxInvoiceTerms && taxInvoiceTerms === defaultTaxTerms) {
@@ -989,7 +1086,26 @@
                 }
 
                 const currentType = document.getElementById("invoice-type").value;
-                document.getElementById("terms-text").value = currentType === 'tax' ? taxInvoiceTerms : proformaInvoiceTerms;
+                if (currentType === 'tax') {
+                    document.getElementById("terms-text").value = taxInvoiceTerms;
+                } else if (currentType === 'proforma') {
+                    document.getElementById("terms-text").value = proformaInvoiceTerms;
+                } else {
+                    document.getElementById("terms-text").value = billTerms;
+                }
+
+                // Toggle Tax Mode visibility on load
+                const taxModeGroup = document.getElementById("tax-mode-group");
+                if (currentType === 'bill') {
+                    if (taxModeGroup) taxModeGroup.classList.add('hidden');
+                } else {
+                    if (taxModeGroup) taxModeGroup.classList.remove('hidden');
+                }
+
+                if (profile.showSignature !== undefined) {
+                    const chk = document.getElementById("show-signature");
+                    if (chk) chk.checked = profile.showSignature;
+                }
 
                 if (profile.sigName) document.getElementById("signature-name").value = profile.sigName;
                 if (profile.sigTitle) document.getElementById("signature-title").value = profile.sigTitle;
