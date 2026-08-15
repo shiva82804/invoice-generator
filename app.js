@@ -902,7 +902,7 @@
             document.getElementById("account-number").value = "925020030002346";
             document.getElementById("account-type").value = "Current Account";
             document.getElementById("ifsc-code").value = "UTIB0000008";
-            document.getElementById("bank-branch").value = "Begumpet";
+            document.getElementById("bank-branch").value = "Hyderabad Main Branch";
             document.getElementById("bank-phone").value = "9581826599";
             document.getElementById("upi-id").value = "8790513762-2@ybl";
 
