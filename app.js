@@ -463,6 +463,23 @@
             document.getElementById("p-supplier-name").textContent = sName;
             
             const invType = document.getElementById("invoice-type").value;
+            const brandLogosRow = document.getElementById("p-brand-logos-row");
+            const headerDivider = document.getElementById("p-header-divider");
+            if (brandLogosRow) {
+                if (invType === 'bill') {
+                    brandLogosRow.style.display = 'none';
+                } else {
+                    brandLogosRow.style.display = 'flex';
+                }
+            }
+            if (headerDivider) {
+                if (invType === 'bill') {
+                    headerDivider.style.display = 'none';
+                } else {
+                    headerDivider.style.display = 'block';
+                }
+            }
+
             const previewTitle = document.getElementById("p-invoice-title");
             if (previewTitle) {
                 if (invType === 'bill') {
